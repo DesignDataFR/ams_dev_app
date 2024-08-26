@@ -1,0 +1,6 @@
+pandas
+django
+datetime
+pathlib
+pymssql
+pyodbc
