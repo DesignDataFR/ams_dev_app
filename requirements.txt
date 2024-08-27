@@ -7,3 +7,4 @@ pyodbc
 mssql-django
 gunicorn 
 django-crispy-forms
+django-environ
