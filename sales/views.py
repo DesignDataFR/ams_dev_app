@@ -6,7 +6,7 @@ from .forms import StatusUpdateForm, MessageForm
 def fetchall(query, params=None, query_name=""):
     with connection.cursor() as cursor:
         cursor.execute(query, params)
-        columns = [col[0] for col in cursor.description]
+        columns = [col[0] for col in cursor.description] 
         results = [dict(zip(columns, row)) for row in cursor.fetchall()]
     
     if query_name:
