@@ -8,12 +8,12 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "django-insecure-default-key")
+SECRET_KEY = "django-insecure-i=1z7_s_&e8*r$f9-73zlyv#ooek5hx5c5y&yr0r^2$m5fnjs#"
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = os.getenv("DJANGO_DEBUG", "False") == "True"
+DEBUG = False
 
-ALLOWED_HOSTS = os.getenv("DJANGO_ALLOWED_HOSTS", "serialbi-ams-dev.azurewebsites.net").split(",")
+ALLOWED_HOSTS = ['serialbi-ams-dev.azurewebsites.net']
 
 # Application definition
 
@@ -61,10 +61,10 @@ WSGI_APPLICATION = "new_sales_project.wsgi.application"
 DATABASES = {
     "default": {
         "ENGINE": "sql_server.pyodbc",
-        "NAME": os.getenv("DB_NAME", "serialbi-mvo-dev-ams"),
-        "USER": os.getenv("DB_USER", "serialbi-dev"),
-        "PASSWORD": os.getenv("DB_PASSWORD", "LuchqXzJMV5t927"),
-        "HOST": os.getenv("DB_HOST", "sqldb-serialbi-dev.database.windows.net"),
+        "NAME": "serialbi-mvo-dev-ams",
+        "USER": "serialbi-dev",
+        "PASSWORD": "LuchqXzJMV5t927",
+        "HOST": "sqldb-serialbi-dev.database.windows.net",
         "PORT": "",
         "OPTIONS": {
             "driver": "ODBC Driver 17 for SQL Server",
