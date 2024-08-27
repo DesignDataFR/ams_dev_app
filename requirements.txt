@@ -4,3 +4,6 @@ datetime
 pathlib
 pymssql
 pyodbc
+mssql-django
+gunicorn 
+django-crispy-forms
