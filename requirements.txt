@@ -1,5 +1,4 @@
 pandas
-django
 datetime
 pathlib
 pymssql
@@ -8,3 +7,4 @@ mssql-django
 gunicorn 
 django-crispy-forms
 django-environ
+Django==5.0.7
