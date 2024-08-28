@@ -59,19 +59,20 @@ WSGI_APPLICATION = "new_sales_project.wsgi.application"
 
 # Database configuration for Azure SQL
 DATABASES = {
-    "default": {
-        "ENGINE": "sql_server.pyodbc",
-        "NAME": "serialbi-mvo-dev-ams",
-        "USER": "serialbi-dev",
-        "PASSWORD": "LuchqXzJMV5t927",
-        "HOST": "sqldb-serialbi-dev.database.windows.net",
-        "PORT": "",
-        "OPTIONS": {
-            "driver": "ODBC Driver 17 for SQL Server",
-            "extra_params": "TrustServerCertificate=no;Connection Timeout=30;",
+    'default': {
+        'ENGINE': 'sql_server',
+        'NAME': 'serialbi-mvo-dev-ams',
+        'USER': 'serialbi-dev',
+        'PASSWORD': 'LuchqXzJMV5t927',
+        'HOST': 'sqldb-serialbi-dev.database.windows.net',
+        'PORT': '',
+        'OPTIONS': {
+            'driver': 'ODBC Driver 17 for SQL Server',
+            'extra_params': 'TrustServerCertificate=no;Connection Timeout=30;',
         },
     }
 }
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
