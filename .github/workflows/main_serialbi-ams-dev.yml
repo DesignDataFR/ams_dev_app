@@ -66,4 +66,4 @@ jobs:
         with:
           app-name: 'serialbi-ams-dev'
           slot-name: 'Production'
-          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_6FF86FA560C04F20B323D10AFBB4792F }}
+          publish-profile: ${{ secrets.AZUREAPPSERVICE_PUBLISHPROFILE_73B6AABBAC0F4B47B7F2218AAA2DC141 }}
