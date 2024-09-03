@@ -1,12 +1,14 @@
 from django.shortcuts import render, redirect
 from django.db import connection
 from datetime import datetime
-from .forms import StatusUpdateForm, MessageForm
+from .forms import StatusUpdateForm, MessageForm, BulkStatusUpdateForm, BulkMessageForm
+from django.http import HttpResponseBadRequest
+
 
 def fetchall(query, params=None, query_name=""):
     with connection.cursor() as cursor:
         cursor.execute(query, params)
-        columns = [col[0] for col in cursor.description] 
+        columns = [col[0] for col in cursor.description]
         results = [dict(zip(columns, row)) for row in cursor.fetchall()]
     
     if query_name:
@@ -17,35 +19,6 @@ def fetchall(query, params=None, query_name=""):
     return results
 
 def call_procedure(proc_name, params=None):
-    with connection.cursor() as cursor:
-
-        param_str = ", ".join(f"'{param}'" if isinstance(param, str) else str(param) for param in params) if params else ""
-        query = f"EXEC {proc_name} {param_str}"
-        
-        cursor.execute(query)
-        columns = [col[0] for col in cursor.description]
-        results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-    
-    return results
-
-def call_procedure_new(proc_name, params=None):
-    with connection.cursor() as cursor:
-        if params:
-            param_str = ", ".join(f"'{param}'" if param is not None else "NULL" for param in params)
-        else:
-            param_str = ""
-        query = f"EXEC {proc_name} {param_str}"
-        
-        cursor.execute(query)
-        try:
-            columns = [col[0] for col in cursor.description]
-            results = [dict(zip(columns, row)) for row in cursor.fetchall()]
-        except TypeError:
-            results = []
-    
-    return results
-
-def call_procedure_new_2(proc_name, params=None):
     with connection.cursor() as cursor:
         if params:
             filtered_params = [f"'{param}'" if param is not None else "NULL" for param in params]
@@ -91,12 +64,12 @@ def Data(request):
         mah_name_search if mah_name_search else None
     ]
 
-    distinct_codes = call_procedure_new_2('GetDistinctReturnCodes')
-    distinct_statuses = call_procedure_new_2('GetDistinctStatusNames')
-    total_count_result = call_procedure_new_2('GetAlertCount', params)
+    distinct_codes = call_procedure('GetDistinctReturnCodes')
+    distinct_statuses = call_procedure('GetDistinctStatusNames')
+    total_count_result = call_procedure('GetAlertCount', params)
     total_count = total_count_result[0]['TotalCount'] if total_count_result else 0
     print (total_count)
-    alerts = call_procedure_new_2('GetAlertData', params)
+    alerts = call_procedure('GetAlertData', params)
 
     for query in connection.queries:
         print(query)
@@ -151,7 +124,7 @@ def alert_detail(request, alert_id):
                 new_status = status_form.cleaned_data['status']
                 comment = status_form.cleaned_data['comment']
                 reason_code = request.POST.get('reason')
-                call_procedure_new('InsertAmsAlertsStatus', [alert_id, account_id, new_status, reason_code, comment])
+                call_procedure('InsertAmsAlertsStatus', [alert_id, account_id, new_status, reason_code, comment])
                 return redirect('alert_detail', alert_id=alert_id)  
 
         elif 'message' in request.POST:
@@ -172,7 +145,7 @@ def alert_detail(request, alert_id):
                     'EmailStatus': 'P'
                 }
                 
-                call_procedure_new(
+                call_procedure(
                     'InsertAmsAlertsInteraction',
                     [
                         alert_id, 
@@ -259,3 +232,101 @@ def bulk_update(request):
     if request.method == 'POST':
         selected_alerts = request.POST.get('selected_alerts_all', '').split(',')
         selected_alerts = [alert.strip() for alert in selected_alerts if alert.strip()]
+
+        status_form = BulkStatusUpdateForm(request.POST)
+        message_form = BulkMessageForm(request.POST)
+
+        default_account_id = 1  
+        default_values = {
+            'AccountId': 1,
+            'Source': 'APP',
+            'Direction': 'S',
+            'From': 'system',
+            'ClientId': '',
+            'InteractionDatetime': datetime.now(),
+            'InteractionTypeCode': 'MAIL',
+            'EmailStatus': 'P',
+        }
+
+        if 'update_status' in request.POST and status_form.is_valid():
+            new_status = status_form.cleaned_data['status']
+
+            if new_status == 'CLO':  
+                reason_code = request.POST.get('reason')
+                comment = request.POST.get('comment', '')
+
+                if not reason_code:
+                    return HttpResponseBadRequest("A reason must be selected when closing an alert.")
+
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT MAX(AlertIdBulkId) FROM Ams_Alerts_Status")
+                    last_bulk_id = cursor.fetchone()[0] or 0
+                new_bulk_id = int(last_bulk_id) + 1
+
+                for alert_id in selected_alerts:
+                    with connection.cursor() as cursor:
+                        cursor.execute("""
+                            INSERT INTO Ams_Alerts_Status (AlertId, StatusCode, ReasonCode, CreationDatetime, AccountId, Comment, AlertIdBulkId)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        """, [alert_id, new_status, reason_code, datetime.now(), default_account_id, comment, new_bulk_id])
+            else:
+                with connection.cursor() as cursor:
+                    cursor.execute("SELECT MAX(AlertIdBulkId) FROM Ams_Alerts_Status")
+                    last_bulk_id = cursor.fetchone()[0] or 0
+                new_bulk_id = int(last_bulk_id) + 1
+
+                for alert_id in selected_alerts:
+                    with connection.cursor() as cursor:
+                        cursor.execute("""
+                            INSERT INTO Ams_Alerts_Status (AlertId, StatusCode, CreationDatetime, AccountId, AlertIdBulkId)
+                            VALUES (%s, %s, %s, %s, %s)
+                        """, [alert_id, new_status, datetime.now(), default_account_id, new_bulk_id])
+
+            message = "Status updated successfully."
+
+        elif 'submit_message' in request.POST and message_form.is_valid():
+            text = message_form.cleaned_data['text']
+            user_or_mah_choice = message_form.cleaned_data['user_or_mah_choice']
+
+            default_values['ContactType'] = 'U' if user_or_mah_choice == 'user' else 'M' if user_or_mah_choice == 'mah' else 'B'
+
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT MAX(AlertIdBulkId) FROM Ams_Alerts_Interactions_Temp")
+                last_bulk_id = cursor.fetchone()[0] or 0
+            new_bulk_id = int(last_bulk_id) + 1
+
+            for alert_id in selected_alerts:
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        SELECT MAHId, UserId FROM Dwh_NMVS_Fct_Alerts_L5 WHERE AlertId = %s
+                    """, [alert_id])
+                    row = cursor.fetchone()
+                    mah_id, user_id = row[0], row[1]
+
+                mah_value = mah_id if user_or_mah_choice in ['mah', 'both'] else None
+                user_value = user_id if user_or_mah_choice in ['user', 'both'] else None
+
+                with connection.cursor() as cursor:
+                    cursor.execute("""
+                        INSERT INTO Ams_Alerts_Interactions_Temp (AlertId, AlertIdBulkId, AccountId, Source, ContactType, 
+                        Direction, [From], ClientId, UserId, MAHId, InteractionDatetime, InteractionTypeCode, 
+                        Message, CreationDatetime, EmailStatus)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    """, [alert_id, new_bulk_id, default_account_id, default_values['Source'], 
+                          default_values['ContactType'], default_values['Direction'], default_values['From'], 
+                          default_values['ClientId'], user_value, mah_value, default_values['InteractionDatetime'], 
+                          default_values['InteractionTypeCode'], text, datetime.now(), default_values['EmailStatus']])
+
+            message = "Message submitted successfully."
+
+    status_form = BulkStatusUpdateForm()
+    message_form = BulkMessageForm()
+
+    context = {
+        'status_form': status_form,
+        'message_form': message_form,
+        'selected_alerts': selected_alerts,
+        'reasons': reasons,
+        'message': message,  
+    }
+    return render(request, 'sales/bulk_update.html', context)
