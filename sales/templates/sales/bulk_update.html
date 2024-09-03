@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Raleway">
     <style>
-        /* Styles similaires à ceux de l'interface d'alerte détaillée */
+
         body {
             font-family: "Raleway", Arial, sans-serif;
             background-color: #f4f5f7;
@@ -185,6 +185,146 @@
 </head>
 <body>
 
-  
+    <div class="w3-content">
+
+        <header class="header">
+            <h1><b>Bulk Update for Selected Alerts</b></h1>
+        </header>
+
+        <div class="return-button">
+            <a href="javascript:goBackToDataURL()" class="w3-button"><i class="fas fa-arrow-left"></i> Return</a>
+        </div>
+
+        <div class="top-container">
+            <div class="details-container">
+                <h3>Bulk Status Update</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="selected_alerts_all" value="{{ selected_alerts|join:',' }}">
+                    <div class="form-group">
+                        <label for="status">Select Status</label>
+                        <select id="status" name="status" onchange="toggleReasonAndButton()">
+                            <option value="" disabled selected>Click here to choose</option>
+                            {% for code, name in status_form.fields.status.choices %}
+                                <option value="{{ code }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="reason-block" class="form-group" style="display: none;">
+                        <label for="reason">Select Reason</label>
+                        <select id="reason" name="reason">
+                            <option value="" disabled selected>Click here to choose</option>
+                            {% for reason in reasons %}
+                                <option value="{{ reason.ReasonCode }}">{{ reason.ReasonName }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div id="comment-block" class="form-group" style="display: none;">
+                        <label for="comment">Comment</label>
+                        <textarea id="comment" name="comment"></textarea>
+                    </div>
+                    <button type="submit" name="update_status" class="w3-button apply-button" style="display: none;" id="update-status-button">Update Status</button>
+                </form>
+            </div>
+
+            <div class="details-container">
+                <h3>Bulk Message Submission</h3>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="selected_alerts_all" value="{{ selected_alerts|join:',' }}">
+                    <div class="form-group">
+                        <label for="text">Message</label>
+                        <textarea id="text" name="text" placeholder="Insert a new message"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label>
+                            <input type="radio" name="user_or_mah_choice" value="user" onclick="checkMessageForm()"> User
+                        </label>
+                        <label>
+                            <input type="radio" name="user_or_mah_choice" value="mah" onclick="checkMessageForm()"> MAH
+                        </label>
+                        <label>
+                            <input type="radio" name="user_or_mah_choice" value="both" onclick="checkMessageForm()"> User & MAH
+                        </label>
+                    </div>
+                    <button type="submit" name="submit_message" class="w3-button apply-button" id="submit-message-button" style="display:none;">Submit Message</button>
+                </form>
+            </div>
+        </div>
+
+        {% if message %}
+        <div class="confirmation-message">
+            <p>{{ message }}</p>
+        </div>
+        {% endif %}
+
+    </div>
+
+    <footer class="footer">
+        <a href="https://www.linkedin.com/company/design-data/" target="_blank">
+            <i class="fab fa-linkedin w3-hover-opacity"></i>
+        </a>
+        <p>Powered by <a href="https://www.design-data.fr/" target="_blank">Design Data Consulting</a></p>
+    </footer>
+
+    <script>
+        function goBackToDataURL() {
+            const DataURL = localStorage.getItem('DataURL');
+            if (DataURL) {
+                window.location.href = DataURL;
+            } else {
+                window.history.back();
+            }
+        }
+
+        function toggleReasonAndButton() {
+            const statusSelect = document.getElementById('status');
+            const reasonBlock = document.getElementById('reason-block');
+            const commentBlock = document.getElementById('comment-block');
+            const updateButton = document.getElementById('update-status-button');
+
+            if (statusSelect.value) {
+                if (statusSelect.options[statusSelect.selectedIndex].text.toLowerCase() === 'closed') {
+                    reasonBlock.style.display = 'block';
+                    commentBlock.style.display = 'block';
+                    updateButton.style.display = 'none';
+                } else {
+                    reasonBlock.style.display = 'none';
+                    commentBlock.style.display = 'block';
+                    updateButton.style.display = 'block';
+                }
+            } else {
+                reasonBlock.style.display = 'none';
+                commentBlock.style.display = 'none';
+                updateButton.style.display = 'none';
+            }
+        }
+
+        document.getElementById('reason').addEventListener('change', function () {
+            const reasonSelect = document.getElementById('reason');
+            const updateButton = document.getElementById('update-status-button');
+
+            if (reasonSelect.value) {
+                updateButton.style.display = 'block';
+            } else {
+                updateButton.style.display = 'none';
+            }
+        });
+
+        function checkMessageForm() {
+            const messageText = document.getElementById('text').value.trim();
+            const selectedRadio = document.querySelector('input[name="user_or_mah_choice"]:checked');
+            const submitButton = document.getElementById('submit-message-button');
+
+            if (messageText && selectedRadio) {
+                submitButton.style.display = 'inline-block';
+            } else {
+                submitButton.style.display = 'none';
+            }
+        }
+
+        document.getElementById('text').addEventListener('input', checkMessageForm);
+    </script>
+
 </body>
 </html>
